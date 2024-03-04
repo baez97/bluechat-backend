@@ -1,0 +1,60 @@
+type User {
+  id: ID!
+  username: String!
+  displayName: String
+  photoUrl: String
+  company: Company
+}
+
+type Company {
+  id: ID!
+  name: String!
+  photoUrl: String
+}
+
+type Group {
+  id: ID!
+  name: String!
+  description: String
+  photoUrl: String
+}
+
+scalar DateTime
+type Message {
+  id: ID!
+  senderId: ID!
+  receiverId: ID!
+  groupId: ID!
+  content: String
+  mediaUrl: String
+  timestamp: DateTime!
+}
+
+type Query {
+  group(id: ID!): Group
+  Messages(userId: ID!, since: DateTime!): [Message!]!
+}
+
+type Subscription {
+  NewMessages(userId: ID!, since: DateTime!): [Message!]!
+}
+
+type Mutation {
+  postMessage(
+    senderId: ID!
+    receiverId: ID
+    groupId: ID
+    content: String!
+    mediaUrl: String
+  ): Message
+
+  createGroup(name: String!, userIds: [ID!]!): Group
+
+  addUserToGroup(userId: ID!, groupId: ID!): Group
+
+  deleteUserFromGroup(userId: ID!, groupId: ID!): Group
+
+  modifyGroupUsers(groupId: ID!, userIds: [ID!]!): Group
+
+  createCompany(name: String!, photoUrl: String): Company
+}
