@@ -1,8 +1,8 @@
 package graph
 
 import (
+	"bluechat-server/database"
 	"bluechat-server/graph/model"
-	"database/sql"
 )
 
 // This file will not be regenerated automatically.
@@ -10,6 +10,6 @@ import (
 // It serves as dependency injection for your app, add any dependencies you require here.
 
 type Resolver struct {
-	Database *sql.DB
+	Database database.Database
 	ChatObservers map[string]chan []*model.Message
 }

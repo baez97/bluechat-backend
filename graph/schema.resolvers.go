@@ -25,7 +25,7 @@ func (r *mutationResolver) PostMessage(ctx context.Context, senderID string, rec
 		RETURNING id
 	`
 	var messageID string
-	err := r.Database.QueryRowContext(ctx, query, senderID, receiverID, groupID, content, mediaURL, time.Now()).Scan(&messageID)
+	err := r.Database.SQL.QueryRowContext(ctx, query, senderID, receiverID, groupID, content, mediaURL, time.Now()).Scan(&messageID)
 	if err != nil {
 		return nil, fmt.Errorf("error inserting message into database: %v", err)
 	}
@@ -46,9 +46,14 @@ func (r *mutationResolver) PostMessage(ctx context.Context, senderID string, rec
 		message.GroupID = *groupID
 	}
 
-	messages := []*model.Message{message}
 	if (r.ChatObservers[*receiverID] != nil) {
-		r.ChatObservers[*receiverID] <- messages
+		go func() {
+			fmt.Print(time.Now().Format(time.RFC3339))
+			messages, err := r.Database.GetMessagesSince(*receiverID, "2024-03-06T09:35:00+01:00")
+			if err == nil {
+				r.ChatObservers[*receiverID] <- messages
+			}
+		}()
 	}
 
 	return message, nil
@@ -92,7 +97,7 @@ func (r *queryResolver) Messages(ctx context.Context, userID string, since strin
 		WHERE receiver_id=$1 AND timestamp > $2
 		ORDER BY timestamp DESC	
 	`
-	rows, err := r.Database.Query(query, userID, since)
+	rows, err := r.Database.SQL.Query(query, userID, since)
 	if err != nil {
 		fmt.Printf("error querying database: %v\n", err)
 		return nil, err
@@ -119,40 +124,13 @@ func (r *subscriptionResolver) NewMessages(ctx context.Context, userID string, s
 
 	// Start a goroutine to listen for new messages and send them to the client
 	go func() {
+		messages, err := r.Database.GetMessagesSince(userID, since)
 		// Set up a SQL query to select new messages for the specified user
-		query := `
-			SELECT id, sender_id, receiver_id, content, media_url, timestamp
-			FROM Messages
-			WHERE receiver_id = $1 AND timestamp > $2
-			ORDER BY timestamp DESC
-		`
-
-		rows, err := r.Database.Query(query, userID, since)
 		if err != nil {
-			fmt.Printf("error querying database: %v\n", err)
 			return
-		}
-		defer rows.Close()
-
-		messages := make([]*model.Message, 0)
-		for rows.Next() {
-			// Read the message data from the database
-			var message model.Message
-			err := rows.Scan(&message.ID, &message.SenderID, &message.ReceiverID, &message.Content, &message.MediaURL, &message.Timestamp)
-			if err != nil {
-				fmt.Printf("error scanning row: %v\n", err)
-				return
-			}
-
-			messages = append(messages, &message)
 		}
 
 		messageChan <- messages
-
-		if err := rows.Err(); err != nil {
-			fmt.Printf("error iterating over rows: %v\n", err)
-			return
-		}
 	}()
 
 	r.ChatObservers[userID] = messageChan

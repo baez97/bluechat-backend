@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bluechat-server/database"
 	"bluechat-server/graph"
 	"bluechat-server/graph/model"
 	"database/sql"
@@ -41,8 +42,8 @@ func main() {
     defer db.Close()
 
     // Create the GraphQL server with the Resolver instance
-    srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{
-        Database: db,
+    srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{
+        Database: database.Database{SQL: db},
         ChatObservers: map[string]chan []*model.Message{},
     }}))
 
