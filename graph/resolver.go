@@ -11,5 +11,5 @@ import (
 
 type Resolver struct {
 	Database database.Database
-	ChatObservers map[string]chan []*model.Message
+	ChatObservers map[string]chan []*model.ChatMessages
 }

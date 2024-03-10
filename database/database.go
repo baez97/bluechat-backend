@@ -30,6 +30,17 @@ func (db *Database) SetUserTimeStamp(userId string, timestamp string) error {
 
 	return nil
 }
+func (db *Database) GetUserTimestamp(userId string) (string, error){
+	var timestamp string
+	query := "SELECT timestamp FROM users WHERE id = $1"
+	err := db.SQL.QueryRow(query, userId).Scan(&timestamp)
+	if err != nil {
+			// If there's an error, return an empty string and the error
+			return "", err
+	}
+	// If successful, return the timestamp and nil error
+	return timestamp, nil
+}
 
 func (db *Database) GetMessagesSince(userId string, since string) ([]*model.Message, error){
 	query := `
@@ -60,33 +71,53 @@ func (db *Database) GetMessagesSince(userId string, since string) ([]*model.Mess
 }
 
 func (db *Database) GetChatMessagesSince(userId string, since string) ([]*model.ChatMessages, error){
-	// query := `
-	// 	SELECT sender_id, ARRAY_AGG((id, content, media_url, timestamp) ORDER BY timestamp DESC) AS messages
-	// 	FROM Messages
-	// 	WHERE receiver_id = $1 AND timestamp > $2
-	// 	GROUP BY sender_id
-	// 	ORDER BY MAX(timestamp) DESC
-	// `
 	query := `
 		SELECT
 			sender_id,
 			json_agg(
-				json_build_object(
-					'id', id::TEXT,
-					'content', content,
-					'media_url', media_url,
-					'timestamp', timestamp
-				) ORDER BY timestamp DESC
+					json_build_object(
+							'id', id::TEXT,
+							'senderId', sender_id::TEXT,
+							'receiverId', receiver_id::TEXT,
+							'content', content,
+							'media_url', media_url,
+							'timestamp', timestamp
+					) ORDER BY timestamp DESC
 			) AS messages
 		FROM
-			Messages
-		WHERE 
-			receiver_id = $1
-			AND timestamp > $2
+			(
+					SELECT
+							sender_id,
+							receiver_id,
+							id,
+							content,
+							media_url,
+							timestamp
+					FROM
+							Messages
+					WHERE
+							receiver_id = $1
+							AND timestamp > $2
+
+					UNION ALL
+
+					SELECT
+							receiver_id AS sender_id,
+							receiver_id AS receiver_id,
+							id,
+							content,
+							media_url,
+							timestamp
+					FROM
+							Messages
+					WHERE
+							sender_id = $1
+							AND timestamp > $2
+			) AS combined_messages
 		GROUP BY
 			sender_id
 		ORDER BY
-			MAX(timestamp) DESC
+			MAX(timestamp) DESC;
 	`
 	rows, err := db.SQL.Query(query, userId, since)
 	if err != nil {
@@ -117,4 +148,25 @@ func (db *Database) GetChatMessagesSince(userId string, since string) ([]*model.
 		})
 	}
 	return chatMessages, nil
+}
+
+func (db *Database) GetUsers(_ string) ([]*model.User, error) {
+	query := "SELECT id, username, display_name, photo_url, company_id, timestamp FROM users"
+	rows, err := db.SQL.Query(query)
+	if err != nil {
+		fmt.Printf("error querying database: %v\n", err)
+		return nil, err
+	}
+	defer rows.Close()
+	users := []*model.User{}
+	for rows.Next() {
+		var user model.User
+		err = rows.Scan(&user.ID, &user.Username, &user.DisplayName, &user.PhotoURL, &user.CompanyID, &user.Timestamp)
+		if err != nil {
+			fmt.Printf("error scanning row: %v\n", err)
+			return nil, err
+		}
+		users = append(users, &user)
+	}
+	return users, nil
 }

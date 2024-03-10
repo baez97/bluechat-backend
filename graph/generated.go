@@ -88,6 +88,7 @@ type ComplexityRoot struct {
 
 	Query struct {
 		ChatMessages func(childComplexity int, userID string, since string) int
+		GetUsers     func(childComplexity int, userID *string) int
 		Group        func(childComplexity int, id string) int
 		Messages     func(childComplexity int, userID string, since string) int
 	}
@@ -97,10 +98,11 @@ type ComplexityRoot struct {
 	}
 
 	User struct {
-		Company     func(childComplexity int) int
+		CompanyID   func(childComplexity int) int
 		DisplayName func(childComplexity int) int
 		ID          func(childComplexity int) int
 		PhotoURL    func(childComplexity int) int
+		Timestamp   func(childComplexity int) int
 		Username    func(childComplexity int) int
 	}
 }
@@ -117,9 +119,10 @@ type QueryResolver interface {
 	Group(ctx context.Context, id string) (*model.Group, error)
 	Messages(ctx context.Context, userID string, since string) ([]*model.Message, error)
 	ChatMessages(ctx context.Context, userID string, since string) ([]*model.ChatMessages, error)
+	GetUsers(ctx context.Context, userID *string) ([]*model.User, error)
 }
 type SubscriptionResolver interface {
-	NewMessages(ctx context.Context, userID string, since string) (<-chan []*model.Message, error)
+	NewMessages(ctx context.Context, userID string, since string) (<-chan []*model.ChatMessages, error)
 }
 
 type executableSchema struct {
@@ -337,6 +340,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.ChatMessages(childComplexity, args["userId"].(string), args["since"].(string)), true
 
+	case "Query.GetUsers":
+		if e.complexity.Query.GetUsers == nil {
+			break
+		}
+
+		args, err := ec.field_Query_GetUsers_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetUsers(childComplexity, args["userId"].(*string)), true
+
 	case "Query.group":
 		if e.complexity.Query.Group == nil {
 			break
@@ -373,12 +388,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Subscription.NewMessages(childComplexity, args["userId"].(string), args["since"].(string)), true
 
-	case "User.company":
-		if e.complexity.User.Company == nil {
+	case "User.companyId":
+		if e.complexity.User.CompanyID == nil {
 			break
 		}
 
-		return e.complexity.User.Company(childComplexity), true
+		return e.complexity.User.CompanyID(childComplexity), true
 
 	case "User.displayName":
 		if e.complexity.User.DisplayName == nil {
@@ -400,6 +415,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.User.PhotoURL(childComplexity), true
+
+	case "User.timestamp":
+		if e.complexity.User.Timestamp == nil {
+			break
+		}
+
+		return e.complexity.User.Timestamp(childComplexity), true
 
 	case "User.username":
 		if e.complexity.User.Username == nil {
@@ -740,6 +762,21 @@ func (ec *executionContext) field_Query_ChatMessages_args(ctx context.Context, r
 		}
 	}
 	args["since"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_GetUsers_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *string
+	if tmp, ok := rawArgs["userId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
+		arg0, err = ec.unmarshalOID2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["userId"] = arg0
 	return args, nil
 }
 
@@ -2134,6 +2171,75 @@ func (ec *executionContext) fieldContext_Query_ChatMessages(ctx context.Context,
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_GetUsers(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_GetUsers(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GetUsers(rctx, fc.Args["userId"].(*string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.User)
+	fc.Result = res
+	return ec.marshalNUser2ᚕᚖbluechatᚑserverᚋgraphᚋmodelᚐUserᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_GetUsers(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_User_id(ctx, field)
+			case "username":
+				return ec.fieldContext_User_username(ctx, field)
+			case "displayName":
+				return ec.fieldContext_User_displayName(ctx, field)
+			case "photoUrl":
+				return ec.fieldContext_User_photoUrl(ctx, field)
+			case "companyId":
+				return ec.fieldContext_User_companyId(ctx, field)
+			case "timestamp":
+				return ec.fieldContext_User_timestamp(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_GetUsers_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Query___type(ctx, field)
 	if err != nil {
@@ -2291,7 +2397,7 @@ func (ec *executionContext) _Subscription_NewMessages(ctx context.Context, field
 	}
 	return func(ctx context.Context) graphql.Marshaler {
 		select {
-		case res, ok := <-resTmp.(<-chan []*model.Message):
+		case res, ok := <-resTmp.(<-chan []*model.ChatMessages):
 			if !ok {
 				return nil
 			}
@@ -2299,7 +2405,7 @@ func (ec *executionContext) _Subscription_NewMessages(ctx context.Context, field
 				w.Write([]byte{'{'})
 				graphql.MarshalString(field.Alias).MarshalGQL(w)
 				w.Write([]byte{':'})
-				ec.marshalNMessage2ᚕᚖbluechatᚑserverᚋgraphᚋmodelᚐMessageᚄ(ctx, field.Selections, res).MarshalGQL(w)
+				ec.marshalNChatMessages2ᚕᚖbluechatᚑserverᚋgraphᚋmodelᚐChatMessagesᚄ(ctx, field.Selections, res).MarshalGQL(w)
 				w.Write([]byte{'}'})
 			})
 		case <-ctx.Done():
@@ -2316,22 +2422,12 @@ func (ec *executionContext) fieldContext_Subscription_NewMessages(ctx context.Co
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "id":
-				return ec.fieldContext_Message_id(ctx, field)
 			case "senderId":
-				return ec.fieldContext_Message_senderId(ctx, field)
-			case "receiverId":
-				return ec.fieldContext_Message_receiverId(ctx, field)
-			case "groupId":
-				return ec.fieldContext_Message_groupId(ctx, field)
-			case "content":
-				return ec.fieldContext_Message_content(ctx, field)
-			case "mediaUrl":
-				return ec.fieldContext_Message_mediaUrl(ctx, field)
-			case "timestamp":
-				return ec.fieldContext_Message_timestamp(ctx, field)
+				return ec.fieldContext_ChatMessages_senderId(ctx, field)
+			case "messages":
+				return ec.fieldContext_ChatMessages_messages(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type Message", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type ChatMessages", field.Name)
 		},
 	}
 	defer func() {
@@ -2518,8 +2614,8 @@ func (ec *executionContext) fieldContext_User_photoUrl(ctx context.Context, fiel
 	return fc, nil
 }
 
-func (ec *executionContext) _User_company(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_User_company(ctx, field)
+func (ec *executionContext) _User_companyId(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_User_companyId(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -2532,7 +2628,51 @@ func (ec *executionContext) _User_company(ctx context.Context, field graphql.Col
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Company, nil
+		return obj.CompanyID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_User_companyId(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _User_timestamp(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_User_timestamp(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Timestamp, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2541,27 +2681,19 @@ func (ec *executionContext) _User_company(ctx context.Context, field graphql.Col
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*model.Company)
+	res := resTmp.(*string)
 	fc.Result = res
-	return ec.marshalOCompany2ᚖbluechatᚑserverᚋgraphᚋmodelᚐCompany(ctx, field.Selections, res)
+	return ec.marshalODateTime2ᚖstring(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_User_company(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_User_timestamp(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "User",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Company_id(ctx, field)
-			case "name":
-				return ec.fieldContext_Company_name(ctx, field)
-			case "photoUrl":
-				return ec.fieldContext_Company_photoUrl(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Company", field.Name)
+			return nil, errors.New("field of type DateTime does not have child fields")
 		},
 	}
 	return fc, nil
@@ -4697,6 +4829,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "GetUsers":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_GetUsers(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "__type":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Query___type(ctx, field)
@@ -4773,8 +4927,13 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 			out.Values[i] = ec._User_displayName(ctx, field, obj)
 		case "photoUrl":
 			out.Values[i] = ec._User_photoUrl(ctx, field, obj)
-		case "company":
-			out.Values[i] = ec._User_company(ctx, field, obj)
+		case "companyId":
+			out.Values[i] = ec._User_companyId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "timestamp":
+			out.Values[i] = ec._User_timestamp(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -5324,6 +5483,60 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 	return res
 }
 
+func (ec *executionContext) marshalNUser2ᚕᚖbluechatᚑserverᚋgraphᚋmodelᚐUserᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.User) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNUser2ᚖbluechatᚑserverᚋgraphᚋmodelᚐUser(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNUser2ᚖbluechatᚑserverᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v *model.User) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._User(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {
 	return ec.___Directive(ctx, sel, &v)
 }
@@ -5608,6 +5821,22 @@ func (ec *executionContext) marshalOCompany2ᚖbluechatᚑserverᚋgraphᚋmodel
 		return graphql.Null
 	}
 	return ec._Company(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalODateTime2ᚖstring(ctx context.Context, v interface{}) (*string, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalString(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalODateTime2ᚖstring(ctx context.Context, sel ast.SelectionSet, v *string) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	res := graphql.MarshalString(*v)
+	return res
 }
 
 func (ec *executionContext) marshalOGroup2ᚖbluechatᚑserverᚋgraphᚋmodelᚐGroup(ctx context.Context, sel ast.SelectionSet, v *model.Group) graphql.Marshaler {

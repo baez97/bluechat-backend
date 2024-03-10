@@ -40,9 +40,10 @@ type Subscription struct {
 }
 
 type User struct {
-	ID          string   `json:"id"`
-	Username    string   `json:"username"`
-	DisplayName *string  `json:"displayName,omitempty"`
-	PhotoURL    *string  `json:"photoUrl,omitempty"`
-	Company     *Company `json:"company,omitempty"`
+	ID          string  `json:"id"`
+	Username    string  `json:"username"`
+	DisplayName *string `json:"displayName,omitempty"`
+	PhotoURL    *string `json:"photoUrl,omitempty"`
+	CompanyID   string  `json:"companyId"`
+	Timestamp   *string `json:"timestamp,omitempty"`
 }

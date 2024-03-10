@@ -1,9 +1,11 @@
+scalar DateTime
 type User {
   id: ID!
   username: String!
   displayName: String
   photoUrl: String
-  company: Company
+  companyId: ID!
+  timestamp: DateTime
 }
 
 type Company {
@@ -19,7 +21,6 @@ type Group {
   photoUrl: String
 }
 
-scalar DateTime
 type Message {
   id: ID!
   senderId: ID!
@@ -39,10 +40,11 @@ type Query {
   group(id: ID!): Group
   Messages(userId: ID!, since: DateTime!): [Message!]!
   ChatMessages(userId: ID!, since: DateTime!): [ChatMessages!]!
+  GetUsers(userId: ID): [User!]!
 }
 
 type Subscription {
-  NewMessages(userId: ID!, since: DateTime!): [Message!]!
+  NewMessages(userId: ID!, since: DateTime!): [ChatMessages!]!
 }
 
 type Mutation {

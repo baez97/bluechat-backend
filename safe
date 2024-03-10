@@ -58,21 +58,17 @@ func (r *mutationResolver) PostMessage(ctx context.Context, senderID string, rec
 			}
 		}()
 	}
-	if r.ChatObservers[senderID] != nil {
-		go func() {
-			timestamp, err := r.Database.GetUserTimestamp(senderID)
-			if err != nil || timestamp == "" {
-				return
-			}
-			messages, err := r.Database.GetChatMessagesSince(senderID, timestamp)
-			fmt.Println(r.ChatObservers[senderID]!= nil);
-			if err == nil {
-				r.ChatObservers[senderID] <- messages
-			}
-		}()
-	}
 
 	return message, nil
+}
+
+// GetUsers is the resolver for the getUsers field.
+func (r *mutationResolver) GetUsers(ctx context.Context, userID *string) ([]*model.User, error) {
+	users, err := r.Database.GetUsers(*userID)
+	if err != nil {
+		return nil, err
+	}
+	return users, nil
 }
 
 // CreateGroup is the resolver for the createGroup field.
@@ -142,15 +138,6 @@ func (r *queryResolver) ChatMessages(ctx context.Context, userID string, since s
 	return chatMessages, nil
 }
 
-// GetUsers is the resolver for the GetUsers field.
-func (r *queryResolver) GetUsers(ctx context.Context, userID *string) ([]*model.User, error) {
-	users, err := r.Database.GetUsers(*userID)
-	if err != nil {
-		return nil, err
-	}
-	return users, nil
-}
-
 // NewMessages is the resolver for the NewMessages field.
 func (r *subscriptionResolver) NewMessages(ctx context.Context, userID string, since string) (<-chan []*model.ChatMessages, error) {
 	// Create a channel to send messages to the client
@@ -182,17 +169,3 @@ func (r *Resolver) Subscription() SubscriptionResolver { return &subscriptionRes
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type subscriptionResolver struct{ *Resolver }
-
-// !!! WARNING !!!
-// The code below was going to be deleted when updating resolvers. It has been copied here so you have
-// one last chance to move it out of harms way if you want. There are two reasons this happens:
-//   - When renaming or deleting a resolver the old code will be put in here. You can safely delete
-//     it when you're done.
-//   - You have helper methods in this file. Move them out to keep these resolver files clean.
-func (r *mutationResolver) GetUsers(ctx context.Context, userID *string) ([]*model.User, error) {
-	users, err := r.Database.GetUsers(*userID)
-	if err != nil {
-		return nil, err
-	}
-	return users, nil
-}

@@ -45,7 +45,7 @@ func main() {
     // Create the GraphQL server with the Resolver instance
     srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{
         Database: database.Database{SQL: db},
-        ChatObservers: map[string]chan []*model.Message{},
+        ChatObservers: map[string]chan []*model.ChatMessages{},
     }}))
 
 	srv.AddTransport(transport.POST{})
