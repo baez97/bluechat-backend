@@ -2,6 +2,11 @@
 
 package model
 
+type ChatMessages struct {
+	SenderID string     `json:"senderId"`
+	Messages []*Message `json:"messages"`
+}
+
 type Company struct {
 	ID       string  `json:"id"`
 	Name     string  `json:"name"`

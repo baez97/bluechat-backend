@@ -7,7 +7,7 @@ require (
 	github.com/vektah/gqlparser/v2 v2.5.11
 )
 
-require github.com/go-chi/chi v1.5.5 // indirect
+require github.com/go-chi/chi v1.5.5
 
 require (
 	github.com/agnivade/levenshtein v1.1.1 // indirect

@@ -118,12 +118,8 @@ func (r *queryResolver) Messages(ctx context.Context, userID string, since strin
 }
 
 // ChatMessages is the resolver for the ChatMessages field.
-func (r *queryResolver) ChatMessages(ctx context.Context, userID string, since string) ([]*model.ChatMessages, error) {
-	chatMessages, err := r.Database.GetChatMessagesSince(userID, since)
-	if err != nil {
-		return nil, err
-	}
-	return chatMessages, nil
+func (r *queryResolver) ChatMessages(ctx context.Context, userID string) (*string, error) {
+	panic(fmt.Errorf("not implemented: ChatMessages - ChatMessages"))
 }
 
 // NewMessages is the resolver for the NewMessages field.

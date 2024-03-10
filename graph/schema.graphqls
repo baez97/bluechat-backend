@@ -30,9 +30,15 @@ type Message {
   timestamp: DateTime!
 }
 
+type ChatMessages {
+  senderId: ID!
+  messages: [Message!]!
+}
+
 type Query {
   group(id: ID!): Group
   Messages(userId: ID!, since: DateTime!): [Message!]!
+  ChatMessages(userId: ID!, since: DateTime!): [ChatMessages!]!
 }
 
 type Subscription {
